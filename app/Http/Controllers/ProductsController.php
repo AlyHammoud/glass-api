@@ -32,7 +32,7 @@ class ProductsController extends Controller
 
         $servicesId = collect($services)->pluck('id')->toArray();
 
-        $products = Product::orderBy('id', 'desc')->whereIn('service_id', $servicesId)->paginate(15);
+        $products = Product::orderBy('id', 'desc')->whereIn('service_id', $servicesId)->paginate(20);
         foreach ($products as $product) {
             if ($product->cover !== null)
                 $product->cover = URL::to($product->cover);
@@ -168,10 +168,10 @@ class ProductsController extends Controller
      * @param  \App\Models\Product  $Product
      * @return \Illuminate\Http\Response
      */
-    public function show(Product $Product)
+    public function show(Product $product)
     {
 
-        $product = $Product;
+        $product = $product;
 
         $images = $product->productImages()->get();
 

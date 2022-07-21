@@ -54,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function(){
     //products resource
     Route::resource('/products', ProductsController::class);
     Route::get('/products', [ProductsController::class, 'index'])->withoutMiddleware('auth:sanctum');
+    Route::get('/products/{product:slug}', [ProductsController::class, 'show'])->withoutMiddleware('auth:sanctum');
     Route::get('/all-products', [ProductsController::class, 'allProducts'])->withoutMiddleware('auth:sanctum');
 
     //upload products images with tinymce

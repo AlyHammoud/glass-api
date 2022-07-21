@@ -69,400 +69,622 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 
 <template>
-    <div class="image-viewer-wrapper">
-        <div class="image-viewer">
-            <img
-                v-for="(image, index) in props.images"
-                :key="index"
-                v-lazy="{
-                    src: image.name,
-                    loading:
-                        'https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif',
-                    delay: 500,
-                }"
-                lazy="loading"
-                @click="showImage(index)"
-            />
-        </div>
-        <p class="view-all" v-if="!hideViewMore" @click="sendIncrementPage">
-            View More
-        </p>
+    <div class="">
+        <page-layout>
+            <template v-slot:title>
+                <!-- content for the header slot -->
+                <p>Products</p>
+            </template>
+            <template v-slot:images>
+                <div class="servicesTag">
+                    <div>
+                        <input
+                            id="all"
+                            type="checkbox"
+                            @change="addToQuery('all')"
+                            :checked="servicesNames.length ? false : true"
+                        />
+                        <label for="all"> All </label>
+                    </div>
+                    <!-- <br /> -->
 
-        <div
-            class="viewImage"
-            @click.self="imageIndex = false"
-            v-if="imageIndex"
-        >
-            <img
-                :class="{ viewImage: imageIndex, zoomIn: zoomIn }"
-                :src="imageIndex"
-                alt=""
-            />
-            <div @click="imageIndex = false" class="close-image">
-                <font-awesome-icon :icon="['fas', 'circle-xmark']" />
-            </div>
-            <div class="zoom" @click="zoom">
-                <font-awesome-icon :icon="['fas', zoomInOut]" />
-            </div>
-            <div
-                :disabled="showNext"
-                class="next"
-                @click="next"
-                :style="{
-                    background: !showNext ? 'rgb(0,0,0,0.8)' : '',
-                    color: !showNext ? '#fff' : '',
-                }"
-            >
-                <font-awesome-icon :icon="['fas', 'angle-right']" />
-            </div>
-            <div
-                :disabled="showPrev"
-                class="prev"
-                @click="prev"
-                :style="{
-                    background: !showPrev ? 'rgb(0,0,0,0.8)' : '',
-                    color: !showPrev ? '#fff' : '',
-                }"
-            >
-                <font-awesome-icon :icon="['fas', 'angle-left']" />
-            </div>
+                    <div
+                        class=""
+                        v-for="(service, index) in store.state.servicesNames"
+                        :key="index"
+                    >
+                        <input
+                            :id="service"
+                            type="checkbox"
+                            @change="addToQuery(service)"
+                            :checked="
+                                servicesNames.includes(service) ? true : false
+                            "
+                        />
+                        <label :for="service"> {{ service }} </label>
+                        <!-- <br /> -->
+                    </div>
+                </div>
+                <Loader v-if="isLoading" />
+                <div class="products" v-if="hasProducts">
+                    <div
+                        class="product-card"
+                        v-for="product in store.state.paginateProducts.data"
+                        :key="product.id"
+                        @click="goTo('SingleProductPage', product.slug)"
+                    >
+                        <div class="product-card-image">
+                            <img :src="product.cover" alt="" />
+                        </div>
 
-            <div class="slider">
-                <img
-                    v-for="(image, index) in props.images"
-                    :key="index"
-                    :src="image.name"
-                    :style="{
-                        opacity: index === index1 ? 1 : 0.3,
-                        boder: index === index1 ? '2px solid gray' : '',
-                    }"
-                    @click="showImage(index)"
-                />
-            </div>
-        </div>
+                        <div class="product-card-body">
+                            <div class="tag tag-purple">
+                                {{ product.service[0].name }}.
+                            </div>
+
+                            <div class="title">
+                                <p>{{ product.title }}</p>
+                            </div>
+
+                            <div class="details">
+                                {{ product.briefDetails }}
+                            </div>
+
+                            <div class="info">{{ product.created_at1 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: center" v-else>
+                    <!-- No Products were found -->
+                    {{ noProductsFound }}
+                </div>
+                <div class="pagination" v-if="hasProducts">
+                    <div
+                        class="prev"
+                        @click="paginatePrev"
+                        v-if="store.state.paginateProducts.current_page > 1"
+                    >
+                        <font-awesome-icon
+                            class=""
+                            :icon="['fa', 'circle-chevron-left']"
+                        />
+                    </div>
+
+                    <div v-if="store.state.paginateProducts.last_page <= 6">
+                        <div
+                            class="pages"
+                            v-for="page in store.state.paginateProducts
+                                .last_page"
+                            @click="goToPage(page)"
+                            :key="page"
+                            :style="{
+                                'background-color':
+                                    store.state.paginateProducts.current_page ==
+                                    page
+                                        ? 'rgba(30, 92, 84, 0.8)'
+                                        : 'rgb(30, 92, 84)',
+                            }"
+                        >
+                            <p>{{ page }}</p>
+                        </div>
+                    </div>
+
+                    <div v-else>
+                        <div
+                            class="pages"
+                            @click="goToPage(1)"
+                            :style="{
+                                'background-color':
+                                    store.state.paginateProducts
+                                        .current_page === 1
+                                        ? 'rgba(30, 92, 84, 0.8)'
+                                        : 'rgb(30, 92, 84)',
+                            }"
+                        >
+                            <p>1</p>
+                        </div>
+
+                        <div
+                            v-if="
+                                store.state.paginateProducts.current_page <= 4
+                            "
+                        >
+                            <div
+                                class="pages"
+                                v-for="(page, index) in 3"
+                                @click="goToPage(index + 2)"
+                                :key="index"
+                                :style="{
+                                    'background-color':
+                                        store.state.paginateProducts
+                                            .current_page ===
+                                        index + 2
+                                            ? 'rgba(30, 92, 84, 0.8)'
+                                            : 'rgb(30, 92, 84)',
+                                }"
+                            >
+                                <p>{{ index + 2 }}</p>
+                            </div>
+                            ...
+                        </div>
+
+                        <div
+                            v-else-if="
+                                store.state.paginateProducts.current_page > 4 &&
+                                store.state.paginateProducts.current_page <
+                                    store.state.paginateProducts.last_page - 1
+                            "
+                        >
+                            <p>...</p>
+                            <p
+                                class="pages"
+                                :style="{
+                                    'background-color':
+                                        store.state.paginateProducts
+                                            .current_page ===
+                                        store.state.paginateProducts
+                                            .current_page -
+                                            1
+                                            ? 'rgba(30, 92, 84, 0.8)'
+                                            : 'rgb(30, 92, 84)',
+                                }"
+                                @click="
+                                    goToPage(
+                                        store.state.paginateProducts
+                                            .current_page - 1
+                                    )
+                                "
+                            >
+                                {{
+                                    store.state.paginateProducts.current_page -
+                                    1
+                                }}
+                            </p>
+                            <p
+                                class="pages"
+                                :style="{
+                                    'background-color':
+                                        store.state.paginateProducts
+                                            .current_page ===
+                                        store.state.paginateProducts
+                                            .current_page
+                                            ? 'rgba(30, 92, 84, 0.8)'
+                                            : 'rgb(30, 92, 84)',
+                                }"
+                                @click="
+                                    goToPage(
+                                        store.state.paginateProducts
+                                            .current_page
+                                    )
+                                "
+                            >
+                                {{ store.state.paginateProducts.current_page }}
+                            </p>
+                            <p
+                                class="pages"
+                                :style="{
+                                    'background-color':
+                                        store.state.paginateProducts
+                                            .current_page ===
+                                        store.state.paginateProducts
+                                            .current_page +
+                                            1
+                                            ? 'rgba(30, 92, 84, 0.8)'
+                                            : 'rgb(30, 92, 84)',
+                                }"
+                                @click="
+                                    goToPage(
+                                        store.state.paginateProducts
+                                            .current_page + 1
+                                    )
+                                "
+                            >
+                                {{
+                                    store.state.paginateProducts.current_page +
+                                    1
+                                }}
+                            </p>
+                            <p>...</p>
+                        </div>
+
+                        <div v-else>
+                            <p>...</p>
+                            <p
+                                class="pages"
+                                :style="{
+                                    'background-color':
+                                        store.state.paginateProducts
+                                            .current_page ===
+                                        store.state.paginateProducts.last_page -
+                                            2
+                                            ? 'rgba(30, 92, 84, 0.8)'
+                                            : 'rgb(30, 92, 84)',
+                                }"
+                                @click="
+                                    goToPage(
+                                        store.state.paginateProducts.last_page -
+                                            2
+                                    )
+                                "
+                            >
+                                {{ store.state.paginateProducts.last_page - 2 }}
+                            </p>
+                            <p
+                                class="pages"
+                                :style="{
+                                    'background-color':
+                                        store.state.paginateProducts
+                                            .current_page ===
+                                        store.state.paginateProducts.last_page -
+                                            1
+                                            ? 'rgba(30, 92, 84, 0.8)'
+                                            : 'rgb(30, 92, 84)',
+                                }"
+                                @click="
+                                    goToPage(
+                                        store.state.paginateProducts.last_page -
+                                            1
+                                    )
+                                "
+                            >
+                                {{ store.state.paginateProducts.last_page - 1 }}
+                            </p>
+                        </div>
+
+                        <!-- <div  
+                            v-for="(page, index) in store.state.paginateProducts.last_page-2"
+                            @click="goToPage(index+2)"
+                            :key="index"
+                        >
+                           <p>{{index+2}}</p>
+                        </div> -->
+
+                        <div
+                            class="pages"
+                            @click="
+                                goToPage(store.state.paginateProducts.last_page)
+                            "
+                            :style="{
+                                'background-color':
+                                    store.state.paginateProducts.current_page ==
+                                    store.state.paginateProducts.last_page
+                                        ? 'rgba(30, 92, 84, 0.8)'
+                                        : 'rgb(30, 92, 84)',
+                            }"
+                        >
+                            <p>
+                                {{ store.state.paginateProducts.last_page }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="next"
+                        @click="paginateNext"
+                        v-if="
+                            route.query.page <
+                            store.state.paginateProducts.last_page
+                        "
+                    >
+                        <font-awesome-icon
+                            class=""
+                            :icon="['fa', 'circle-chevron-right']"
+                        />
+                    </div>
+                </div>
+            </template>
+        </page-layout>
     </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from "@vue/runtime-core";
+import PageLayout from "../components/PageLayout.vue";
+import { useRouter, useRoute } from "vue-router";
+import {
+    onMounted,
+    ref,
+    watch,
+    computed,
+    watchEffect,
+} from "@vue/runtime-core";
 import { useStore } from "vuex";
+import Loader from "../components/AddOns/Loader.vue";
 
+const router = useRouter();
+const route = useRoute();
 const store = useStore();
-// const props = defineProps(["images"]);
-const props = defineProps({
-    images: {
-        type: Array,
-    },
-    hideViewMore: {
-        type: Boolean,
-        default: false,
-    },
-});
-const emit = defineEmits(["pageIncrement"]);
 
-const imageIndex = ref(false);
-const index1 = ref(null);
-const zoomIn = ref(false);
-const zoomInOut = ref("magnifying-glass-plus");
+const page = ref(null);
+const hasProducts = ref(false);
+const isLoading = ref(true);
 
-const showPrev = ref(true);
-const showNext = ref(true);
-const opacityImage = ref(0.8);
+const noProductsFound = ref(null);
 
-const page = ref(1);
-
-function sendIncrementPage() {
-    page.value = page.value + 1;
-    emit("pageIncrement", page);
+if (route.query.page == null) {
+    route.query.page = 1;
 }
 
-watch(zoomIn, (newVal, oldVal) => {
-    if (newVal) {
-        zoomInOut.value = "magnifying-glass-minus";
-    }
-    // }else{
-    //     zoomInOut.value = 'magnifying-glass-plus';
-    // }
-    if (oldVal) {
-        zoomInOut.value = "magnifying-glass-plus";
-    }
-});
+function paginateNext() {
+    page.value = Number(route.query.page) + 1;
+}
 
-const showImage = (index) => {
-    imageIndex.value = props.images[index].name;
+function paginatePrev() {
+    page.value = Number(route.query.page) - 1;
+}
 
-    index1.value = index;
+function goToPage(page1) {
+    page.value = page1;
+}
 
-    if (index1.value == props.images.length - 1) {
-        showNext.value = false;
-        showPrev.value = true;
-    } else if (index1.value == 0) {
-        showNext.value = true;
-        showPrev.value = false;
+const getAllByServicesNames = ref([
+    "Secorete",
+    "Showers",
+    "Handrills",
+    "Facades",
+    "Partitions",
+    "Mirrors",
+]);
+const servicesNames = ref([]);
+
+if(route.query.servicesNames !== null){ 
+    addToQuery(route.query.servicesNames)
+}
+
+function addToQuery(service) {
+    isLoading.value = true;
+
+    if (servicesNames.value.includes(service)) {
+        servicesNames.value = servicesNames.value.filter(
+            (serviceName) => serviceName != service
+        );
+        page.value = 1; 
     } else {
-        showNext.value = true;
-        showPrev.value = true;
-    }
-};
-
-function next() {
-    if (index1.value == props.images.length - 3) {
-        page.value = page.value + 1;
-        emit("pageIncrement", page);
+        servicesNames.value.push(service);
+        page.value = 1;
     }
 
-    if (index1.value < props.images.length - 1) {
-        imageIndex.value = props.images[index1.value + 1].name;
-        index1.value++;
+    if (service === "all") {
+        servicesNames.value = [];
+        page.value = 1; 
     }
 
-    if (index1.value == props.images.length - 1) {
-        showNext.value = false;
-        showPrev.value = true;
-    } else {
-        showNext.value = true;
-        showPrev.value = true;
-    }
+    router
+        .push({ name: "ProductsPage", query: { page: page.value } })
+        .then(() => {
+            isLoading.value = true;
+            store
+                .dispatch("getPaginateProducts", [
+                    1,
+                    servicesNames.value.length
+                        ? servicesNames.value
+                        : getAllByServicesNames.value,
+                ])
+                .then(() => {
+                    isLoading.value = false;
+                    if (store.state.paginateProducts.data.length) {
+                        hasProducts.value = true;
+                    }else{
+                        hasProducts.value = false;
+                        noProductsFound.value = "No products were found!"
+                    }
+                })
+                .catch(() => (isLoading.value = false));
+        });
 }
 
-function prev() {
-    if (index1.value > 0) {
-        imageIndex.value = props.images[index1.value - 1].name;
-        index1.value--;
-    }
 
-    if (index1.value == 0) {
-        showNext.value = true;
-        showPrev.value = false;
-    } else {
-        showNext.value = true;
-        showPrev.value = true;
-    }
-}
+onMounted(() => {
+    store
+        .dispatch("getPaginateProducts", [
+            route.query.page,
+            getAllByServicesNames.value,
+        ])
+        .then(() => {alert("mounted: "+route.query.page)
+            isLoading.value = false;
+            if (store.state.paginateProducts.data.length) {
+                hasProducts.value = true;
+            }else{
+                noProductsFound.value = "No products were found!"
+            }
+        })
+        .catch(() => (isLoading.value = false));
 
-function zoom() {
-    zoomIn.value = !zoomIn.value;
-}
-
-window.addEventListener("keydown", (e) => {
-    if (e.key == "Escape") {
-        imageIndex.value = false;
-    }
+        addToQuery('all');
 });
+
+watch(page, (newVal, oldVal) => { 
+    router.push({ name: "ProductsPage", query: { page: newVal } }).then(() => {
+        isLoading.value = true;
+        store
+            .dispatch("getPaginateProducts", [
+                newVal,
+                servicesNames.value.length
+                    ? servicesNames.value
+                    : getAllByServicesNames.value,
+            ])
+            .then(() => {
+                isLoading.value = false;
+                if (store.state.paginateProducts.data.length) {
+                    hasProducts.value = true;
+                }
+            })
+            .catch(() => (isLoading.value = false));
+    });
+});
+
+function goTo(link, slug) {
+    router.push({ name: link, params: { slug: slug } });
+}
+
 </script>
 
-<style lang="scss">
-.image-viewer-wrapper {
-    width: 88%;
+<style lang="scss" scoped>
+.pagination {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    height: 4rem;
+    width: auto;
     justify-content: center;
     align-items: center;
-    margin-top: 20px;
-    margin: 20px auto;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    padding: 10px;
-    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+    margin: auto;
 
-    @media screen and (max-width: 550px) {
-        width: 95%;
-    }
-
-    .image-viewer {
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(5, auto);
-        grid-auto-rows: 150px 170px; // first, third, fifth... 150px,,//\\ 2nd, 4rth, 6ith.. 250px rows
-        gap: 10px;
-        grid-auto-flow: dense; //fill the empty spaces after putting grid-column
-
-        @media screen and (max-width: 500px) {
-            grid-auto-rows: 150px 150px;
-        }
-
-        img {
-            border-radius: 8px;
-            object-fit: cover;
-            object-position: 50% 50%;
-            box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-
-            &:nth-child(2) {
-                grid-column: span 2;
-            }
-
-            &:nth-child(4) {
-                grid-column: span 2;
-                grid-row: span 2;
-            }
-            &:nth-child(9) {
-                grid-column: span 2;
-            }
-            &:nth-child(13) {
-                grid-column: span 2;
-            }
-            &:nth-child(19) {
-                grid-row: span 2;
-            }
-        }
-        @media (max-width: 1918px) {
-            grid-template-columns: repeat(4, 1fr);
-        }
-        @media (max-width: 1500px) {
-            grid-template-columns: repeat(3, 1fr);
-        }
-        @media (max-width: 800px) {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        img {
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-            z-index: 22;
-
-            &:hover {
-                opacity: 0.8;
-                transform: scale(103%);
-            }
-        }
-    }
-    .view-all {
-        text-align: center;
-        margin-top: 25px;
-        color: blue;
+    .next,
+    .prev {
+        font-size: 1.5rem;
+        margin: 0 20px;
         cursor: pointer;
+        color: rgb(30, 92, 84);
     }
 
-    .viewImage {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1000;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
+    div {
+        width: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
-        img {
-            height: 90%;
-            width: 80%;
-            object-fit: contain;
-
-            @media (min-width: 755px) {
-                object-fit: cover;
-            }
-        }
-        .zoomIn {
-            object-fit: cover;
-        }
-
-        .close-image {
-            position: absolute;
-            font-size: 30px;
-            color: rgb(145, 131, 131, 0.9);
-            top: 10px;
-            right: 14px;
-            transition: all 0.5s ease;
-            cursor: pointer;
-
-            &:hover {
-                color: rgba(235, 205, 205, 0.2);
-            }
-        }
-
-        .zoom {
-            position: absolute;
-            font-size: 30px;
-            color: rgba(221, 215, 215, 0.9);
-            top: 80px;
-            right: 14px;
-            transition: all 0.5s ease;
-            cursor: pointer;
-
-            &:hover {
-                color: rgba(235, 205, 205, 0.2);
-            }
-            @media (min-width: 755px) {
-                display: none;
-            }
-        }
-
-        .prev {
-            font-size: 40px;
-            position: absolute;
-            top: 50%;
-            left: 5%;
-            background-color: rgb(0, 0, 0, 0.4);
-            border-radius: 50%;
-            width: 50px;
-            text-align: center;
-            transition: all 0.5s ease;
-            z-index: 9999;
-            cursor: pointer;
-
-            &:hover {
-                background-color: rgba(138, 135, 135, 0.4);
-            }
-        }
-        .next {
-            font-size: 40px;
-            position: absolute;
-            top: 50%;
-            right: 5%;
-            background-color: rgb(0, 0, 0, 0.4);
-            border-radius: 50%;
-            width: 50px;
-            text-align: center;
-            z-index: 9999;
-            cursor: pointer;
-            transition: all 0.5s ease;
-
-            &:hover {
-                background-color: rgba(138, 135, 135, 0.4);
-            }
-        }
-
-        .slider {
-            position: absolute;
-            width: 70%;
-            height: 50px;
-            bottom: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 123123;
-            background-color: rgb(0, 0, 0, 0.7);
+        .pages {
+            background-color: rgb(30, 92, 84);
+            color: #fff;
+            width: auto;
+            max-width: 100%;
+            height: 1.5rem;
             display: flex;
+            flex-direction: row;
             align-items: center;
             justify-content: center;
-            overflow-x: auto;
-            overflow-y: hidden;
+            padding: 0 8px;
+            cursor: pointer;
+            border: 0.5px solid white;
+        }
+    }
+}
+.products {
+    width: 80%;
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+    padding-bottom: 40px;
+    flex-wrap: wrap;
 
-            &::-webkit-scrollbar {
-                height: 9px;
-            }
-            &::-webkit-scrollbar-track {
-                background: #e4dcdc;
-            }
+    @media (max-width: 800px) {
+        width: 98%;
+    }
 
-            &::-webkit-scrollbar-thumb {
-                background: rgb(78, 76, 76);
-            }
+    .product-card {
+        margin: 10px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        min-width: 300px;
+        width: 300px;
+        cursor: pointer;
+
+        @media (max-width: 645px) {
+            min-width: 220px;
+            width: 220px;
+        }
+
+        &:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+
+        &-image {
+            width: 100%;
+            height: 200px;
 
             img {
-                width: 60px;
-                height: 90%;
-                margin: 5px;
-                opacity: 0.5;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                object-position: 50% 50%;
+            }
+        }
+
+        &-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+
+            .tag {
+                background: #cccccc;
+                border-radius: 50px;
+                font-size: 12px;
+                margin: 0;
+                color: #fff;
+                padding: 2px 10px;
+                text-transform: uppercase;
                 cursor: pointer;
+            }
+
+            .tag-purple {
+                background-color: #5e76bf;
+            }
+
+            .title {
+                margin: 10px 0 20px;
+
+                p {
+                    font-size: 19px;
+                    font-weight: 500;
+                }
+            }
+
+            .details {
+                margin: 0 0 20px;
+            }
+
+            .info {
+                align-self: flex-end;
+                font-size: 10px;
+                color: gray;
+            }
+        }
+    }
+}
+
+.servicesTag {
+    display: flex;
+    flex-direction: row;
+    width: 80%;
+    justify-content: center;
+    align-items: center;
+    margin: 15px auto;
+    flex-wrap: wrap;
+
+    div {
+        margin-top: 15px;
+
+        label {
+            margin-right: 20px;
+            cursor: pointer;
+            color: #fff;
+            background-color: rgb(30, 92, 84);
+            padding: 1px 5px;
+            border-radius: 5px;
+
+            &:hover {
+                background-color: rgb(143, 202, 143);
+            }
+
+            @media (hover: none) {
+                &:hover {
+                    background-color: rgb(30, 92, 84);
+                }
+            }
+        }
+
+        input[type="checkbox"] {
+            display: none;
+
+            &:checked ~ label {
+                border: 1px solid rgba(81, 203, 238, 1);
+                box-shadow: 0 0 5px rgba(81, 203, 238, 1);
+                background-color: rgb(143, 202, 143);
             }
         }
     }
 }
 </style>
-
-
-
-
-
-
-

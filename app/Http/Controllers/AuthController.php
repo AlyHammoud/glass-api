@@ -79,8 +79,8 @@ class AuthController extends Controller
             'phone_number' => $data['phone_number'],
             'messages' => $data['message'],
         ], function ($message) use ($data) {
-            $message->from($data['email']);
-            $message->to('abc@example.com');
+            $message->from('contact@onixglass.com');
+            $message->to('contact@onixglass.com');
         });
 
 
