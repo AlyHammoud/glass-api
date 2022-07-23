@@ -173,7 +173,8 @@ class ProductsController extends Controller
 
         $product = $product;
 
-        $images = $product->productImages()->get();
+        // $images = $product->productImages()->get();
+        $images = $product['productImages'];
 
         if ($product['cover'] != null) {
 
