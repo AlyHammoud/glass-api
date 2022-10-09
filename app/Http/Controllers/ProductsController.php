@@ -42,6 +42,8 @@ class ProductsController extends Controller
             $images = ProductsImage::where('product_id', $product->id)->get();
 
             foreach($images as $image){
+                //replace all images names in coming rom RichTextEditor, without full url in both arabic and english versions
+
                 if(Str::contains($product['fullDetails'], $image['name'])){
                     $product['fullDetails'] = str_replace($image['name'], URL::to('ProductsImages/'.$image['name']), $product['fullDetails']);
                 }
@@ -51,12 +53,30 @@ class ProductsController extends Controller
             }
         }
 
+        $lang = Request()->server('HTTP_ACCEPT_LANGUAGE');
+        // $lang = "English";
+
+        foreach($products as $product){
+            if($lang == "English"){
+                unset($product->fullDetailsArabic);
+                unset($product->briefDetailsArabic);
+                unset($product->titleArabic);
+                unset($product->service[0]->nameArabic);
+            }else{
+                unset($product->title);
+                unset($product->briefDetails);
+                unset($product->fullDetails);
+                unset($product->service[0]->name);
+            }
+        }
+
         return response([
             'paginateProducts' => $products
         ]);
     }
 
     public function allProducts(){
+        ///for search
         $products = Product::orderBy('id', 'desc')->get();
         foreach ($products as $product) {
             if ($product->cover !== null)
@@ -183,11 +203,28 @@ class ProductsController extends Controller
 
         if (count($images) > 0) {
             foreach ($images as $image) {
+                //replace all images names in coming rom RichTextEditor, without full url in both arabic and english versions
                 $product['fullDetails'] = str_replace($image['name'], URL::to("ProductsImages/" . $image['name']), $product['fullDetails']);
                 $product['fullDetailsArabic'] = str_replace($image['name'], URL::to("ProductsImages/" . $image['name']), $product['fullDetailsArabic']);
             }
         }
 
+        //// dont use it here,, get back all data or make another logic of another method
+        //this function is used for both (show singleProduct by slug) ==> and edit by slug which needs all data back
+        // $lang = Request()->server('HTTP_ACCEPT_LANGUAGE');
+
+        // foreach (collect($product) as $key => $product1) {
+            
+        //     if ($lang == "English") {
+        //         unset($product->briefDetailsArabic);
+        //         unset($product->fullDetailsArabic);
+        //         unset($product->titleArabic);
+        //     } else {
+        //         unset($product->title);
+        //         unset($product->briefDetails);
+        //         unset($product->fullDetails);
+        //     }
+        // }
         return response([
             'product' => $product
         ]);

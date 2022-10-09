@@ -8,6 +8,9 @@ use App\Models\MainImage;
 use App\Models\MainInfo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+
+use Illuminate\Support\Facades\App;
 
 class MainInfosController extends Controller
 {
@@ -67,12 +70,23 @@ class MainInfosController extends Controller
 
     public function getMainInfo()
     {
+        
+        $lang = Request()->server('HTTP_ACCEPT_LANGUAGE');
+        $differLanguage = $lang == "English" ? "Arabic" : "English";
 
         $backgrounds = [];
         $customers_reviews = [];
 
         $mainInfos = MainInfo::orderBy('id', 'desc')->get()->first();
         if (!empty($mainInfos)) {
+
+            foreach(collect($mainInfos) as $key => $mainInfo){
+                if(Str::contains($key, $differLanguage)){
+                    unset($mainInfos->$key);
+                    continue;
+                }
+            }
+            
             $backgroundsFirst = MainImage::where('main_infos_id', $mainInfos->id)->get();
 
             if (count($backgroundsFirst) > 0) {

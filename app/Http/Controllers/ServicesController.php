@@ -51,7 +51,6 @@ class ServicesController extends Controller
     {
         $services = $service->get();
 
-        $allServicesImages = [];
 
         if (!empty($services)) {
             foreach ($services as $service) {
@@ -91,7 +90,7 @@ class ServicesController extends Controller
             foreach($images as $key => $image){
                 $images[$key]['name'] = URL::to('services_images/'.$image->name);
             }
-        } 
+        }
 
         return response([
             'service' => $service,
