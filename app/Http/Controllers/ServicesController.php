@@ -17,15 +17,18 @@ class ServicesController extends Controller
     {
         $validate = $request->validate([
             'name' => 'required',
+            'nameArabic' => 'required'
         ]);
-
+        // return response($request->nameArabic);
         $services = $request->user()->services()->create([
             'name' => $request->name,
             'extraDetails' => $request->extraDetails,
             'extraDetailsArabic' => $request->extraDetailsArabic,
         ]);
 
-        if (count($request->images) > 0) {
+        $request->user()->services()->where('id', $services->id)->update(['nameArabic' => $request->nameArabic]);
+
+        if ($request->images) {
             foreach ($request->images as $image) {
                 $from = public_path('tmpServices/' . $image['name']);
                 $to = public_path('services_images/' . $image['name']);
@@ -87,8 +90,8 @@ class ServicesController extends Controller
         if (count($service) > 0) {
             $service = $service[0];
             $images = ServicesImage::where('service_id', $service->id)->paginate(15);
-            foreach($images as $key => $image){
-                $images[$key]['name'] = URL::to('services_images/'.$image->name);
+            foreach ($images as $key => $image) {
+                $images[$key]['name'] = URL::to('services_images/' . $image->name);
             }
         }
 
@@ -110,7 +113,9 @@ class ServicesController extends Controller
 
         $service->update([
             'name' => $request->name,
+            'nameArabic' => $request->nameArabic,
             'extraDetails' => $request->extraDetails,
+            'extraDetailsArabic' => $request->extraDetailsArabic,
         ]);
 
         //update delete backgrounds
